@@ -1,32 +1,22 @@
 name: Build a firmware
 
 on:
+    push:
+        branches:
+            - main
 
-    workflow_call:
-        inputs:
-            qmk_version:
-                default: '0.22.14'
-                type: string
-                required: false
-            keyboard:
-                type: string
-                required: true
-            keymap:
-                type: string
-                required: true
+permissions:
+    contents: write
 
 jobs:
-
     build:
-
-        name: Build a firmware ${{ inputs.keyboard }}:${{ inputs.keymap }}
-
+        name: Build a firmware
         runs-on: ubuntu-latest
+
         container:
             image: ghcr.io/qmk/qmk_cli:latest
 
         steps:
-
         - name: Checkout source
             uses: actions/checkout@v4
 
@@ -34,13 +24,15 @@ jobs:
             uses: ./.github/actions/checkout-qmk_firmware
 
         - name: Install a link to own source
-            run: ln -s $(pwd)/qmk_firmware/keyboards/keyball __qmk__/keyboards/keyball
+            run: ln -s $(pwd)/qmk_firmware/keyboards/keyball __qmk_vial__/keyboards/keyball
 
         - name: Compile and link
-            run: qmk compile -j 4 -kb keyball/${{ inputs.keyboard }} -km ${{ inputs.keymap }}
+            # run: qmk compile -j 4 -kb keyball/${{ inputs.keyboard }} -km ${{ inputs.keymap }}
+            run: make -j4 SKIP_GIT=yes keyball/keyball44:bmp-vial:uf2
+            working-directory: __qmk_vial__
 
         - name: Archive built firmware
             uses: actions/upload-artifact@v4
             with:
-                name: ${{ inputs.keyboard }}-${{ inputs.keymap }}-firmware
-                path: __qmk__/*.hex
+                name: keyball44-bmp-vial
+                path: __qmk_vial__/*.uf2
