@@ -13,13 +13,13 @@ runs:
     using: 'composite'
     steps:
     - name: Checkout vial-qmk
-        uses: actions/checkout@v4
-        with:
-            path: ${{ inputs.path }}
-            repository: sekigon-gonnoc/vial-qmk
-            submodules: recursive
-            ref: ${{ inputs.version }}
+      uses: actions/checkout@v4
+      with:
+          path: ${{ inputs.path }}
+          repository: sekigon-gonnoc/vial-qmk
+          submodules: recursive
+          ref: ${{ inputs.version }}
 
     - name: Setup QMK
-        shell: bash
-        run: qmk setup --home ${{ inputs.path }} --yes
+      shell: bash
+      run: qmk setup --home ${{ inputs.path }} --yes
