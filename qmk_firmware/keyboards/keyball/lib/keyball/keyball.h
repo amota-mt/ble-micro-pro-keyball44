@@ -17,6 +17,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
+#include "pointing_device.h"
+#include "matrix.h"
+#include "bmp.h"
+#include "state_controller.h"
+#include "bmp_matrix.h"
+#include "bmp_custom_keycodes.h"
+#include "lib/bmp/keyboard.h"
+
 //////////////////////////////////////////////////////////////////////////////
 // Configurations
 
