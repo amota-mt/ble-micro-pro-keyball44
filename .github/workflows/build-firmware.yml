@@ -26,12 +26,12 @@ jobs:
               version: bmp-vial-1.2.0
 
         - name: Install a link to own source
-          run: ln -s $(pwd)/qmk_firmware/keyboards/keyball __qmk_vial__/keyboards/keyball_kari
+          run: ln -s $(pwd)/qmk_firmware/keyboards/keyball __qmk_vial__/keyboards/keyball
 
         - name: Compile and link
             # run: qmk compile -j 4 -kb keyball/${{ inputs.keyboard }} -km ${{ inputs.keymap }}
           # run: make -j4 SKIP_GIT=yes keyball/keyball44:pigeon:uf2
-          run: make -j4 SKIP_GIT=yes keyball_kari/keyball44:bmp:uf2
+          run: make -j4 SKIP_GIT=yes keyball/keyball44:bmp:uf2
           working-directory: __qmk_vial__
 
         - name: Archive built firmware

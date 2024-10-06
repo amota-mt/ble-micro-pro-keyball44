@@ -36,8 +36,11 @@ const uint16_t AML_TIMEOUT_MAX = 1000;
 const uint16_t AML_TIMEOUT_QU  = 50;   // Quantization Unit
 
 static const char BL = '\xB0'; // Blank indicator character
+
+#ifdef OLED_ENABLED
 static const char LFSTR_ON[] PROGMEM = "\xB2\xB3";
 static const char LFSTR_OFF[] PROGMEM = "\xB4\xB5";
+#endif
 
 keyball_t keyball = {
     .this_have_ball = false,
@@ -46,7 +49,6 @@ keyball_t keyball = {
 
     .this_motion = {0},
     .that_motion = {0},
-    .auto_mouse_threshold = 3,
 
     .cpi_value   = 0,
     .cpi_changed = false,
@@ -169,7 +171,7 @@ void pointing_device_driver_set_cpi(uint16_t cpi) {
     keyball_set_cpi(cpi);
 }
 
-__attribute__((weak)) void keyball_on_apply_motion_to_mouse_move(keyball_motion_t *m, report_mouse_t *r, bool is_left) {
+static void motion_to_mouse_move(keyball_motion_t *m, report_mouse_t *r, bool is_left) {
 #if KEYBALL_MODEL == 61 || KEYBALL_MODEL == 39 || KEYBALL_MODEL == 147 || KEYBALL_MODEL == 44
     r->x = clip2int8(m->y);
     r->y = clip2int8(m->x);
@@ -188,7 +190,7 @@ __attribute__((weak)) void keyball_on_apply_motion_to_mouse_move(keyball_motion_
     m->y = 0;
 }
 
-__attribute__((weak)) void keyball_on_apply_motion_to_mouse_scroll(keyball_motion_t *m, report_mouse_t *r, bool is_left) {
+static void motion_to_mouse_scroll(keyball_motion_t *m, report_mouse_t *r, bool is_left) {
     // consume motion of trackball.
     int16_t div = 1 << (keyball_get_scroll_div() - 1);
     int16_t x = divmod16(&m->x, div);
@@ -209,9 +211,8 @@ __attribute__((weak)) void keyball_on_apply_motion_to_mouse_scroll(keyball_motio
 #    error("unknown Keyball model")
 #endif
 
-    // Scroll snapping
-#if KEYBALL_SCROLLSNAP_ENABLE == 1
-    // Old behavior up to 1.3.2)
+#if KEYBALL_SCROLLSNAP_ENABLE
+    // scroll snap.
     uint32_t now = timer_read32();
     if (r->h != 0 || r->v != 0) {
         keyball.scroll_snap_last = now;
@@ -222,27 +223,14 @@ __attribute__((weak)) void keyball_on_apply_motion_to_mouse_scroll(keyball_motio
         keyball.scroll_snap_tension_h += y;
         r->h = 0;
     }
-#elif KEYBALL_SCROLLSNAP_ENABLE == 2
-    // New behavior
-    switch (keyball_get_scrollsnap_mode()) {
-        case KEYBALL_SCROLLSNAP_MODE_VERTICAL:
-            r->h = 0;
-            break;
-        case KEYBALL_SCROLLSNAP_MODE_HORIZONTAL:
-            r->v = 0;
-            break;
-        default:
-            // pass by without doing anything
-            break;
-    }
 #endif
 }
 
 static void motion_to_mouse(keyball_motion_t *m, report_mouse_t *r, bool is_left, bool as_scroll) {
     if (as_scroll) {
-        keyball_on_apply_motion_to_mouse_scroll(m, r, is_left);
+        motion_to_mouse_scroll(m, r, is_left);
     } else {
-        keyball_on_apply_motion_to_mouse_move(m, r, is_left);
+        motion_to_mouse_move(m, r, is_left);
     }
 }
 
@@ -270,8 +258,6 @@ static inline bool should_report(void) {
 report_mouse_t pointing_device_driver_get_report(report_mouse_t rep) {
     // report mouse event, if keyboard is primary.
     if (is_bmp_keyboard_master() && should_report()) {
-        // Reset total motion tracker.
-        keyball.total_motion = 0;
         // modify mouse report by PMW3360 motion.
         motion_to_mouse(&keyball.this_motion, &rep, is_bmp_keyboard_left(), keyball.scroll_mode);
         motion_to_mouse(&keyball.that_motion, &rep, !is_bmp_keyboard_left(), keyball.scroll_mode ^ keyball.this_have_ball);
@@ -384,6 +370,8 @@ const char PROGMEM code_to_name[] = {
     ',', '.', '/',
 };
 // clang-format on
+#else
+const char PROGMEM code_to_name[] = {};
 #endif
 
 void keyball_oled_render_ballinfo(void) {
@@ -406,23 +394,8 @@ void keyball_oled_render_ballinfo(void) {
     oled_write(format_4d(keyball_get_cpi()) + 1, false);
     oled_write_P(PSTR("00 "), false);
 
-    // indicate scroll snap mode: "VT" (vertical), "HN" (horiozntal), and "SCR" (free)
-#if 1 && KEYBALL_SCROLLSNAP_ENABLE == 2
-    switch (keyball_get_scrollsnap_mode()) {
-        case KEYBALL_SCROLLSNAP_MODE_VERTICAL:
-            oled_write_P(PSTR("VT"), false);
-            break;
-        case KEYBALL_SCROLLSNAP_MODE_HORIZONTAL:
-            oled_write_P(PSTR("HO"), false);
-            break;
-        default:
-            oled_write_P(PSTR("\xBE\xBF"), false);
-            break;
-    }
-#else
-    oled_write_P(PSTR("\xBE\xBF"), false);
-#endif
     // indicate scroll mode: on/off
+    oled_write_P(PSTR("\xBE\xBF"), false);
     if (keyball.scroll_mode) {
         oled_write_P(LFSTR_ON, false);
     } else {
@@ -509,18 +482,6 @@ void keyball_oled_render_layerinfo(void) {
 //////////////////////////////////////////////////////////////////////////////
 // Public API functions
 
-uint8_t keyball_get_auto_mouse_threshold(void) {
-    return keyball.auto_mouse_threshold;
-}
-
-void keyball_set_auto_mouse_threshold(uint8_t param) {
-    keyball.auto_mouse_threshold = param;
-}
-
-uint8_t keyball_get_total_move(void) {
-    return keyball.total_motion;
-}
-
 bool keyball_get_scroll_mode(void) {
     return keyball.scroll_mode;
 }
@@ -530,20 +491,6 @@ void keyball_set_scroll_mode(bool mode) {
         keyball.scroll_mode_changed = timer_read32();
     }
     keyball.scroll_mode = mode;
-}
-
-keyball_scrollsnap_mode_t keyball_get_scrollsnap_mode(void) {
-#if KEYBALL_SCROLLSNAP_ENABLE == 2
-    return keyball.scrollsnap_mode;
-#else
-    return 0;
-#endif
-}
-
-void keyball_set_scrollsnap_mode(keyball_scrollsnap_mode_t mode) {
-#if KEYBALL_SCROLLSNAP_ENABLE == 2
-    keyball.scrollsnap_mode = mode;
-#endif
 }
 
 uint8_t keyball_get_scroll_div(void) {
@@ -590,9 +537,6 @@ void keyboard_post_init_kb(void) {
 #ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
         set_auto_mouse_enable(c.amle);
         set_auto_mouse_timeout(c.amlto == 0 ? AUTO_MOUSE_TIME : (c.amlto + 1) * AML_TIMEOUT_QU);
-#endif
-#if KEYBALL_SCROLLSNAP_ENABLE == 2
-        keyball_set_scrollsnap_mode(c.ssnap);
 #endif
     }
 
@@ -648,12 +592,13 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
     keyball.last_pos = record->event.key;
 
     pressing_keys_update(keycode, record);
-    
-    if (!process_record_bmp(keycode, record)) {
+
+    if (!process_record_user(keycode, record)) {
         return false;
     }
 
-    if (!process_record_user(keycode, record)) {
+    // process custom keycodes for BMP
+    if (!process_record_bmp(keycode, record)) {
         return false;
     }
 
@@ -687,10 +632,6 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
             case KBC_RST:
                 keyball_set_cpi(0);
                 keyball_set_scroll_div(0);
-#ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
-                set_auto_mouse_enable(false);
-                set_auto_mouse_timeout(AUTO_MOUSE_TIME);
-#endif
                 break;
             case KBC_SAVE: {
                 keyball_config_t c = {
@@ -699,9 +640,6 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
 #ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
                     .amle  = get_auto_mouse_enable(),
                     .amlto = (get_auto_mouse_timeout() / AML_TIMEOUT_QU) - 1,
-#endif
-#if KEYBALL_SCROLLSNAP_ENABLE == 2
-                    .ssnap = keyball_get_scrollsnap_mode(),
 #endif
                 };
                 eeconfig_update_kb(c.raw);
@@ -730,18 +668,6 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
                 add_scroll_div(-1);
                 break;
 
-#if KEYBALL_SCROLLSNAP_ENABLE == 2
-            case SSNP_HOR:
-                keyball_set_scrollsnap_mode(KEYBALL_SCROLLSNAP_MODE_HORIZONTAL);
-                break;
-            case SSNP_VRT:
-                keyball_set_scrollsnap_mode(KEYBALL_SCROLLSNAP_MODE_VERTICAL);
-                break;
-            case SSNP_FRE:
-                keyball_set_scrollsnap_mode(KEYBALL_SCROLLSNAP_MODE_FREE);
-                break;
-#endif
-
 #ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
             case AML_TO:
                 set_auto_mouse_enable(!get_auto_mouse_enable());
@@ -769,48 +695,21 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
     return true;
 }
 
-// Disable functions keycode_config() and mod_config() in keycode_config.c to
-// reduce size.  These functions are provided for customizing magic keycode.
-// These two functions are mostly unnecessary if `MAGIC_KEYCODE_ENABLE = no` is
-// set.
-//
-// If `MAGIC_KEYCODE_ENABLE = no` and you want to keep these two functions as
-// they are, define the macro KEYBALL_KEEP_MAGIC_FUNCTIONS.
-//
-// See: https://docs.qmk.fm/#/squeezing_avr?id=magic-functions
-//
-#if !defined(MAGIC_KEYCODE_ENABLE) && !defined(KEYBALL_KEEP_MAGIC_FUNCTIONS)
-
-uint16_t keycode_config(uint16_t keycode) {
-    return keycode;
-}
-
-uint8_t mod_config(uint8_t mod) {
-    return mod;
-}
-
-#endif
-
 //////////////////////////////////////////////////////////////////////////////
 // BLE Micro Pro
 void matrix_scan_kb() {
     // fetch from optical sensor.
     if (keyball.this_have_ball) {
-        pmw3360_motion_t d = {0};
-        if (pmw3360_motion_burst(&d)) {
-            ATOMIC_BLOCK_FORCEON {
-                keyball.this_motion.x = add16(keyball.this_motion.x, d.x);
-                keyball.this_motion.y = add16(keyball.this_motion.y, d.y);
-            }
+      pmw3360_motion_t d = {0};
+      if (pmw3360_motion_burst(&d)) {
+        ATOMIC_BLOCK_FORCEON {
+          keyball.this_motion.x = add16(keyball.this_motion.x, d.x);
+          keyball.this_motion.y = add16(keyball.this_motion.y, d.y);
         }
+      }
 
-        BMPAPI->app.schedule_next_task(MATRIX_SCAN_TIME_MS);
+      BMPAPI->app.schedule_next_task(MATRIX_SCAN_TIME_MS);
     }
 
     matrix_scan_user();
-}
-
-bool auto_mouse_activation(report_mouse_t mouse_report) {
-    keyball.total_motion += (abs(mouse_report.x)+abs(mouse_report.y));
-    return keyball.total_motion > keyball.auto_mouse_threshold || mouse_report.buttons;
 }

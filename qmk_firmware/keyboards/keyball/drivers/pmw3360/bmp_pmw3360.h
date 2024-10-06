@@ -197,4 +197,3 @@ static inline void spi_stop(void) {
   setPinOutput(PMW3360_NCS_PIN);
   writePinHigh(PMW3360_NCS_PIN);
 }
-
