@@ -44,8 +44,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #    define KEYBALL_SCROLLBALL_INHIVITOR 50
 #endif
 
+/// To disable scroll snap feature, define 0 in your config.h
 #ifndef KEYBALL_SCROLLSNAP_ENABLE
-#    define KEYBALL_SCROLLSNAP_ENABLE 1
+#    define KEYBALL_SCROLLSNAP_ENABLE 2
 #endif
 
 #ifndef KEYBALL_SCROLLSNAP_RESET_TIMER
@@ -56,12 +57,26 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #    define KEYBALL_SCROLLSNAP_TENSION_THRESHOLD 12
 #endif
 
+/// Threshold of mouse movement before layer change occurs
+#ifndef KEYBALL_AUTO_MOUSE_THRESHOLD
+#    define KEYBALL_AUTO_MOUSE_THRESHOLD 3
+#endif
+
 /// Specify SROM ID to be uploaded PMW3360DW (optical sensor).  It will be
 /// enabled high CPI setting or so.  Valid valus are 0x04 or 0x81.  Define this
 /// in your config.h to be enable.  Please note that using this option will
 /// increase the firmware size by more than 4KB.
 //#define KEYBALL_PMW3360_UPLOAD_SROM_ID 0x04
 //#define KEYBALL_PMW3360_UPLOAD_SROM_ID 0x81
+
+/// Defining this macro keeps two functions intact: keycode_config() and
+/// mod_config() in keycode_config.c.
+///
+/// These functions customize the magic key code and are useless if the magic
+/// key code is disabled.  Therefore, Keyball automatically disables it.
+/// However, there may be cases where you still need these functions even after
+/// disabling the magic key code. In that case, define this macro.
+//#define KEYBALL_KEEP_MAGIC_FUNCTIONS
 
 //////////////////////////////////////////////////////////////////////////////
 // Constants
@@ -85,30 +100,34 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define KEYBALL_OLED_MAX_PRESSING_KEYCODES 6
 
 // BLE Micro Pro
-#define MATRIX_SCAN_TIME_MS 40
+#define MATRIX_SCAN_TIME_MS 5
 
 //////////////////////////////////////////////////////////////////////////////
 // Types
 
 enum keyball_keycodes {
-    KBC_RST  = BMP_SAFE_RANGE, // Keyball configuration: reset to default
+    KBC_RST = BMP_SAFE_RANGE, // Keyball configuration: reset to default
     KBC_SAVE, // Keyball configuration: save to EEPROM
 
     CPI_I100, // CPI +100 CPI
     CPI_D100, // CPI -100 CPI
-    CPI_I1K,  // CPI +1000 CPI
-    CPI_D1K,  // CPI -1000 CPI
+    CPI_I1K, // CPI +1000 CPI
+    CPI_D1K, // CPI -1000 CPI
 
     // In scroll mode, motion from primary trackball is treated as scroll
     // wheel.
-    SCRL_TO,  // Toggle scroll mode
-    SCRL_MO,  // Momentary scroll mode
+    SCRL_TO, // Toggle scroll mode
+    SCRL_MO, // Momentary scroll mode
     SCRL_DVI, // Increment scroll divider
     SCRL_DVD, // Decrement scroll divider
 
+    SSNP_VRT, // Set scroll snap mode as vertical
+    SSNP_HOR, // Set scroll snap mode as horizontal
+    SSNP_FRE, // Set scroll snap mode as disable (free scroll)
+
     // Auto mouse layer control keycodes.
     // Only works when POINTING_DEVICE_AUTO_MOUSE_ENABLE is defined.
-    AML_TO,  // Toggle automatic mouse layer
+    AML_TO, // Toggle automatic mouse layer
     AML_I50, // Increment automatic mouse layer timeout
     AML_D50, // Decrement automatic mouse layer timeout
 
@@ -125,6 +144,9 @@ typedef union {
         uint8_t amle : 1;  // automatic mouse layer enabled
         uint16_t amlto : 5; // automatic mouse layer timeout
 #endif
+#if KEYBALL_SCROLLSNAP_ENABLE == 2
+        uint8_t ssnap : 2; // scroll snap mode
+#endif
     };
 } keyball_config_t;
 
@@ -139,6 +161,12 @@ typedef struct {
 
 typedef uint8_t keyball_cpi_t;
 
+typedef enum {
+    KEYBALL_SCROLLSNAP_MODE_VERTICAL   = 0,
+    KEYBALL_SCROLLSNAP_MODE_HORIZONTAL = 1,
+    KEYBALL_SCROLLSNAP_MODE_FREE       = 2,
+} keyball_scrollsnap_mode_t;
+
 typedef struct {
     bool this_have_ball;
     bool that_enable;
@@ -146,6 +174,8 @@ typedef struct {
 
     keyball_motion_t this_motion;
     keyball_motion_t that_motion;
+    uint8_t total_motion;
+    uint8_t auto_mouse_threshold;
 
     uint8_t cpi_value;
     bool    cpi_changed;
@@ -154,8 +184,12 @@ typedef struct {
     uint32_t scroll_mode_changed;
     uint8_t  scroll_div;
 
+#if KEYBALL_SCROLLSNAP_ENABLE == 1
     uint32_t scroll_snap_last;
     int8_t   scroll_snap_tension_h;
+#elif KEYBALL_SCROLLSNAP_ENABLE == 2
+    keyball_scrollsnap_mode_t scrollsnap_mode;
+#endif
 
     uint16_t       last_kc;
     keypos_t       last_pos;
@@ -177,6 +211,22 @@ typedef enum {
 extern keyball_t keyball;
 
 //////////////////////////////////////////////////////////////////////////////
+// Hook points
+
+/// keyball_on_adjust_layout is called when the keyboard layout adjustted
+void keyball_on_adjust_layout(keyball_adjust_t v);
+
+/// keyball_on_apply_motion_to_mouse_move applies trackball's motion m to r as
+/// mouse movement.
+/// You can change the default algorithm by override this function.
+void keyball_on_apply_motion_to_mouse_move(keyball_motion_t *m, report_mouse_t *r, bool is_left);
+
+/// keyball_on_apply_motion_to_mouse_scroll applies trackball's motion m to r
+/// as mouse scroll.
+/// You can change the default algorithm by override this function.
+void keyball_on_apply_motion_to_mouse_scroll(keyball_motion_t *m, report_mouse_t *r, bool is_left);
+
+//////////////////////////////////////////////////////////////////////////////
 // Public API functions
 
 /// keyball_oled_render_ballinfo renders ball information to OLED.
@@ -192,20 +242,53 @@ void keyball_oled_render_keyinfo(void);
 /// inactive layers.
 void keyball_oled_render_layerinfo(void);
 
+uint8_t keyball_get_auto_mouse_threshold(void);
+void keyball_set_auto_mouse_threshold(uint8_t param);
+uint8_t keyball_get_total_move(void);
+
 /// keyball_get_scroll_mode gets current scroll mode.
 bool keyball_get_scroll_mode(void);
 
 /// keyball_set_scroll_mode modify scroll mode.
 void keyball_set_scroll_mode(bool mode);
 
-// TODO: document
+/// keyball_get_scrollsnap_mode gets current scroll snap mode.
+keyball_scrollsnap_mode_t keyball_get_scrollsnap_mode(void);
+
+/// keyball_set_scrollsnap_mode change scroll snap mode.
+void keyball_set_scrollsnap_mode(keyball_scrollsnap_mode_t mode);
+
+/// keyball_get_scroll_div gets current scroll divider.
+/// See also keyball_set_scroll_div for the scroll divider's detail.
 uint8_t keyball_get_scroll_div(void);
 
-// TODO: document
+/// keyball_set_scroll_div changes scroll divider.
+///
+/// The scroll divider is the number that divides the raw value when applying
+/// trackball motion to scrolling.  The CPI value of the trackball is very
+/// high, so if you apply it to scrolling as is, it will scroll too much.
+/// In order to adjust the scroll amount to be appropriate, it is applied after
+/// dividing it by a scroll divider.  The actual denominator is determined by
+/// the following formula:
+///
+///   denominator = 2 ^ (div - 1) ^2
+///
+/// Valid values are between 1 and 7, KEYBALL_SCROLL_DIV_DEFAULT is used when 0
+/// is specified.
 void keyball_set_scroll_div(uint8_t div);
 
-// TODO: document
+/// keyball_get_cpi gets current CPI of trackball.
+/// The actual CPI value is the returned value +1 and multiplied by 100:
+///
+///     CPI = (v + 1) * 100
 uint8_t keyball_get_cpi(void);
 
-// TODO: document
+/// keyball_set_cpi changes CPI of trackball.
+/// Valid values are between 0 to 119, and the actual CPI value is the set
+/// value +1 and multiplied by 100:
+///
+///     CPI = (v + 1) * 100
+///
+/// In addition, if you do not upload SROM, the maximum value will be limited
+/// to 34 (3500CPI).
 void keyball_set_cpi(uint8_t cpi);
