@@ -17,7 +17,7 @@ BACKLIGHT_ENABLE = no       # Enable keyboard backlight functionality
 AUDIO_ENABLE = no           # Audio output
 
 # Keyball44 is split keyboard.
-SPLIT_KEYBOARD = yes
+# SPLIT_KEYBOARD = yes
 
 # Optical sensor driver for trackball.
 POINTING_DEVICE_ENABLE = yes
@@ -56,7 +56,7 @@ MCU_LDSCRIPT = nrf52840_bmp
 CUSTOM_MATRIX = yes # This flag should be on for nrf52
 PLATFORM_KEY = bmp
 EEPROM_DRIVER = custom
-# SPLIT_KEYBOARD = no
+SPLIT_KEYBOARD = no
 DYNAMIC_KEYMAP_ENABLE = yes
 RAW_ENABLE = yes
 MOUSE_SHARED_EP = no
