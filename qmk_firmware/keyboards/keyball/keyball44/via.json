@@ -1,9 +1,9 @@
 {
   "name": "Keyball44",
   "vendorId": "0x5957",
-  "productId": "0x0400",
+  "productId": "0x0200",
   "matrix": { "rows": 8, "cols": 6 },
-  "lighting": "qmk_rgblight",
+  "lighting": "none",
   "layouts" : {
     "labels": [
       [ "Ball availability", "None", "Right", "Left", "Dual" ]
