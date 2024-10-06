@@ -49,3 +49,4 @@ jobs:
           with:
               name: keyball44-bmp-vial
               path: __qmk_vial__/.build/*.uf2
+              include-hidden-files: true
