@@ -34,11 +34,10 @@ jobs:
           working-directory: __qmk_vial__
 
         - name: check
-          run: pwd & ls
+          run: cd __qmk_vial__ & ls
 
         - name: Archive built firmware
           uses: actions/upload-artifact@v4
           with:
               name: keyball44-bmp-vial
-              path: ./*.uf2
-              # path: __qmk_vial__/*.uf2
+              path: __qmk_vial__/.build/*.uf2
