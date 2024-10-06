@@ -30,19 +30,8 @@ jobs:
 
         - name: Compile and link
             # run: qmk compile -j 4 -kb keyball/${{ inputs.keyboard }} -km ${{ inputs.keymap }}
-          run: make -j4 SKIP_GIT=yes keyball/keyball44:pigeon:uf2
+          run: make -j4 SKIP_GIT=yes keyball_kari/keyball44:bmp:uf2
           working-directory: __qmk_vial__
-
-        - name: check
-          run: |
-            pwd
-            ls
-            cd __qmk_vial__
-            pwd
-            ls -a
-            cd .build
-            pwd
-            ls -a
 
         - name: Archive built firmware
           uses: actions/upload-artifact@v4
