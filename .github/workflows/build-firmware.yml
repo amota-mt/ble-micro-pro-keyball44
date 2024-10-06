@@ -30,7 +30,7 @@ jobs:
 
         - name: Compile and link
             # run: qmk compile -j 4 -kb keyball/${{ inputs.keyboard }} -km ${{ inputs.keymap }}
-          run: make -j4 SKIP_GIT=yes keyball/keyball44:bmp:uf2
+          run: make -j4 SKIP_GIT=yes keyball/keyball44:pigeon:uf2
           working-directory: __qmk_vial__
 
         - name: Archive built firmware
