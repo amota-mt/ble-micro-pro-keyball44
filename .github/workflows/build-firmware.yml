@@ -39,7 +39,10 @@ jobs:
             ls
             cd __qmk_vial__
             pwd
-            ls
+            ls -a
+            cd .build
+            pwd
+            ls -a
 
         - name: Archive built firmware
           uses: actions/upload-artifact@v4
