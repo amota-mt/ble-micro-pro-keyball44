@@ -265,16 +265,6 @@ static inline bool should_report(void) {
 }
 
 report_mouse_t pointing_device_driver_get_report(report_mouse_t rep) {
-    // fetch from optical sensor.
-    if (keyball.this_have_ball) {
-        pmw3360_motion_t d = {0};
-        if (pmw3360_motion_burst(&d)) {
-            ATOMIC_BLOCK_FORCEON {
-                keyball.this_motion.x = add16(keyball.this_motion.x, d.x);
-                keyball.this_motion.y = add16(keyball.this_motion.y, d.y);
-            }
-        }
-    }
     // report mouse event, if keyboard is primary.
     if (is_keyboard_master() && should_report()) {
         // modify mouse report by PMW3360 motion.
@@ -779,3 +769,21 @@ uint8_t mod_config(uint8_t mod) {
 }
 
 #endif
+
+// BLE Micro Pro
+void matrix_scan_kb() {
+    // fetch from optical sensor.
+    if (keyball.this_have_ball) {
+      pmw3360_motion_t d = {0};
+      if (pmw3360_motion_burst(&d)) {
+        ATOMIC_BLOCK_FORCEON {
+          keyball.this_motion.x = add16(keyball.this_motion.x, d.x);
+          keyball.this_motion.y = add16(keyball.this_motion.y, d.y);
+        }
+      }
+
+      BMPAPI->app.schedule_next_task(MATRIX_SCAN_TIME_MS);
+    }
+
+    matrix_scan_user();
+}
