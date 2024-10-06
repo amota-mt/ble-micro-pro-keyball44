@@ -33,8 +33,12 @@ jobs:
           run: make -j4 SKIP_GIT=yes keyball/keyball44:pigeon:uf2
           working-directory: __qmk_vial__
 
+        - name: check
+          run: pwd & ls
+
         - name: Archive built firmware
           uses: actions/upload-artifact@v4
           with:
               name: keyball44-bmp-vial
-              path: __qmk_vial__/*.uf2
+              path: ./*.uf2
+              # path: __qmk_vial__/*.uf2
