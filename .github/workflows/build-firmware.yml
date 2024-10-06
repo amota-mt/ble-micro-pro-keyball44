@@ -34,7 +34,12 @@ jobs:
           working-directory: __qmk_vial__
 
         - name: check
-          run: cd __qmk_vial__ & ls
+          run: |
+            pwd
+            ls
+            cd __qmk_vial__
+            pwd
+            ls
 
         - name: Archive built firmware
           uses: actions/upload-artifact@v4
