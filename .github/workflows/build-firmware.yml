@@ -29,7 +29,7 @@ jobs:
           run: ln -s $(pwd)/qmk_firmware/keyboards/keyball __qmk_vial__/keyboards/keyball
 
         - name: Compile and link
-          run: make -j4 SKIP_GIT=yes keyball/keyball44:pigeon:uf2
+          run: make -j4 SKIP_GIT=yes keyball/keyball44:bmp:uf2
           working-directory: __qmk_vial__
 
         - name: Archive built firmware
