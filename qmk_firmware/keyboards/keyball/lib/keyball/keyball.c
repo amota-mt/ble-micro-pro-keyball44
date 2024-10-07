@@ -877,7 +877,7 @@ void matrix_scan_kb() {
     matrix_scan_user();
 }
 
-bool auto_mouse_activation(report_mouse_t mouse_report) {
-    keyball.total_motion += (abs(mouse_report.x)+abs(mouse_report.y));
-    return keyball.total_motion > keyball.auto_mouse_threshold || mouse_report.buttons;
-}
+// bool auto_mouse_activation(report_mouse_t mouse_report) {
+//     keyball.total_motion += (abs(mouse_report.x)+abs(mouse_report.y));
+//     return keyball.total_motion > keyball.auto_mouse_threshold || mouse_report.buttons;
+// }
