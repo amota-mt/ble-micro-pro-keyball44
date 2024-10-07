@@ -56,22 +56,33 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 bool isInit = true;
 
 layer_state_t layer_state_set_user(layer_state_t state) {
-    // Auto enable scroll mode when the highest layer is 3
-    keyball_set_scroll_mode(get_highest_layer(state) == 3);
+    // Auto enable scroll mode when the highest layer is 4
+    keyball_set_scroll_mode(get_highest_layer(state) == 4);
+
+	#ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
+    switch(get_highest_layer(remove_auto_mouse_layer(state, true))) {
+        case 1:
+            state = remove_auto_mouse_layer(state, false);
+            set_auto_mouse_enable(false);
+            break;
+        default:
+            set_auto_mouse_enable(true);
+            break;
+    }
+    #endif
+
     return state;
 }
 
+#ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
+void pointing_device_init_user(void) {
+    set_auto_mouse_enable(true);
+}
+#endif
+
 #ifdef OLED_ENABLE
-
 #    include "lib/oledkit/oledkit.h"
-
 void oledkit_render_info_user(void) {
-	if (isInit) {
-		set_auto_mouse_enable(true);
-		keyball_set_scroll_mode(false);
-		isInit = false;
-	}
-
     keyball_oled_render_keyinfo();
     keyball_oled_render_ballinfo();
     keyball_oled_render_layerinfo();
