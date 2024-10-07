@@ -60,6 +60,8 @@ layer_state_t layer_state_set_user(layer_state_t state) {
     keyball_set_scroll_mode(get_highest_layer(state) == 4);
 
 	#ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
+	keyball_handle_auto_mouse_layer_change(state);
+	
     switch(get_highest_layer(remove_auto_mouse_layer(state, true))) {
         case 1:
             state = remove_auto_mouse_layer(state, false);
