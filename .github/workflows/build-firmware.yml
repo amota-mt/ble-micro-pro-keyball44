@@ -36,5 +36,5 @@ jobs:
           uses: actions/upload-artifact@v4
           with:
               name: keyball44-bmp-vial
-              path: __qmk_vial__/.build/*.uf2
+              path: __qmk_vial__/.build/keyball_keyball44_bmp.uf2
               include-hidden-files: true
