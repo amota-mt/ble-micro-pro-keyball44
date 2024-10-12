@@ -22,8 +22,8 @@
     "mode": "SPLIT_MASTER",
     "startup": 1,
     "peripheral": {
-      "max_interval": 15,
-      "min_interval": 15,
+      "max_interval": 10,
+      "min_interval": 10,
       "slave_latency": 10
     },
     "central": {
@@ -38,7 +38,7 @@
     "reserved": [
       0,
       0,
-      0,
+      1,
       0,
       0,
       0,
