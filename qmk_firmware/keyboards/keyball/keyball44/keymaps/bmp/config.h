@@ -41,6 +41,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define AUTO_MOUSE_TIME 600
 #define OLED_TIMEOUT 5000 // ミリ秒
 
-#define TAP_DANCE_ENABLE
+#define TAPPING_TERM 180
 #define PERMISSIVE_HOLD
 #define TAPPING_FORCE_HOLD
