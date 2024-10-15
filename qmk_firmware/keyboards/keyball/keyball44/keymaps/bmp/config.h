@@ -38,5 +38,5 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define POINTING_DEVICE_AUTO_MOUSE_ENABLE
 #define AUTO_MOUSE_DEFAULT_LAYER 1
 #define AUTO_MOUSE_LAYER_KEEP_TIME 10000
-#define AUTO_MOUSE_TIME 600
+#define AUTO_MOUSE_TIME 350
 #define OLED_TIMEOUT 5000 // ミリ秒
